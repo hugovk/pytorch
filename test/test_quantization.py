@@ -9,7 +9,9 @@ from torch.quantization import \
 from common_utils import run_tests, TEST_WITH_UBSAN
 from common_quantization import QuantizationTestCase, SingleLayerLinearModel, \
     SkipQuantModel, QuantStubModel, \
-    ModForFusion, ManualLinearQATModel, ManualConvLinearQATModel, test_only_eval_fn, test_only_train_fn
+    ModForFusion, ManualLinearQATModel, ManualConvLinearQATModel, \
+    ModForWrapping, \
+    test_only_eval_fn, test_only_train_fn
 
 from common_quantization import AnnotatedTwoLayerLinearModel, AnnotatedNestedModel, \
     AnnotatedSubNestedModel, AnnotatedCustomConfigNestedModel
@@ -288,6 +290,34 @@ class QuantizationAwareTrainingTest(QuantizationTestCase):
         model = ManualConvLinearQATModel()
         model = quantize_qat(model, test_only_train_fn, self.img_data)
         checkQuantized(model)
+
+
+class ScriptabilityTest(QuantizationTestCase):
+    def test_wrapper_traceable(self):
+        model_under_test = ModForWrapping()
+        x = torch.rand(10)
+        traced_model = torch.jit.trace(model_under_test, x, check_trace=False)
+        self.assertEqual(traced_model(x), model_under_test(x))
+
+        qmodel_under_test = ModForWrapping(quantized=True)
+        qmodel_under_test.from_float(model_under_test)
+        x = torch.quantize_linear(x.to(torch.float), scale=1.0, zero_point=0,
+                                  dtype=torch.qint32)
+        traced_model = torch.jit.trace(qmodel_under_test, x, check_trace=False)
+        self.assertEqual(traced_model(x), qmodel_under_test(x))
+
+    def test_wrapper_scriptable(self):
+        model_under_test = ModForWrapping()
+        x = torch.rand(10)
+        scripted_model = torch.jit.script(model_under_test)
+        self.assertEqual(scripted_model(x), model_under_test(x))
+
+        qmodel_under_test = ModForWrapping(quantized=True)
+        qmodel_under_test.from_float(model_under_test)
+        x = torch.quantize_linear(x.to(torch.float), scale=1.0, zero_point=0,
+                                  dtype=torch.qint32)
+        scripted_model = torch.jit.script(qmodel_under_test)
+        self.assertEqual(scripted_model(x), qmodel_under_test(x))
 
 
 class FusionTest(QuantizationTestCase):

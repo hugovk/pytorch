@@ -8,6 +8,10 @@ from .linear import Linear
 from .linear import Quantize
 from .linear import DeQuantize
 
+from .wrapper_module import make_wrapper
+from .wrapper_module import Add, Cat
+from .wrapper_module import QuantizedAdd, QuantizedCat
+
 __all__ = [
     'Conv2d',
     'DeQuantize',
@@ -15,9 +19,10 @@ __all__ = [
     'MaxPool2d',
     'Quantize',
     'ReLU',
+    # Wrapper modules
+    'make_wrapper',
+    'Add',
+    'Cat',
+    'QuantizedAdd',
+    'QuantizedCat',
 ]
-
-# Generated modules -- use torch/quantization/tools/make_modules to regenerate.
-from ._generated import Add
-
-__all__ += ['Add']
