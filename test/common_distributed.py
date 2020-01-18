@@ -174,17 +174,17 @@ class MultiProcessTestCase(TestCase):
             self.processes.append(process)
 
     def _fork_processes(self):
-        if six.PY3:
-            proc = torch.multiprocessing.get_context("fork").Process
-        else:
+        if six.PY2:
             proc = torch.multiprocessing.Process
+        else:
+            proc = torch.multiprocessing.get_context("fork").Process
         self._start_processes(proc)
 
     def _spawn_processes(self):
-        if six.PY3:
-            proc = torch.multiprocessing.get_context("spawn").Process
-        else:
+        if six.PY2:
             raise RuntimeError("Cannot use spawn start method with Python 2")
+        else:
+            proc = torch.multiprocessing.get_context("spawn").Process
         self._start_processes(proc)
 
     @classmethod
