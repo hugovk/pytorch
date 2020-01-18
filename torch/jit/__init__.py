@@ -146,7 +146,7 @@ def save(m, f, _extra_files=DEFAULT_EXTRA_FILES_MAP):
     """
     if isinstance(f, str) or \
             (sys.version_info[0] == 2 and isinstance(f, unicode)) or \
-            (sys.version_info[0] == 3 and isinstance(f, pathlib.Path)):
+            (sys.version_info[0] >= 3 and isinstance(f, pathlib.Path)):
         m.save(f, _extra_files=_extra_files)
     else:
         ret = m.save_to_buffer(_extra_files=_extra_files)
@@ -228,7 +228,7 @@ def load(f, map_location=None, _extra_files=DEFAULT_EXTRA_FILES_MAP):
     cu = torch._C.CompilationUnit()
     if isinstance(f, str) or \
             (sys.version_info[0] == 2 and isinstance(f, unicode)) or \
-            (sys.version_info[0] == 3 and isinstance(f, pathlib.Path)):
+            (sys.version_info[0] >= 3 and isinstance(f, pathlib.Path)):
         cpp_module = torch._C.import_ir_module(cu, f, map_location, _extra_files)
     else:
         cpp_module = torch._C.import_ir_module_from_buffer(cu, f.read(), map_location, _extra_files)

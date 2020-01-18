@@ -208,7 +208,7 @@ def storage_to_tensor_type(storage):
 def _is_path(name_or_buffer):
     return isinstance(name_or_buffer, str) or \
         (sys.version_info[0] == 2 and isinstance(name_or_buffer, unicode)) or \
-        (sys.version_info[0] == 3 and isinstance(name_or_buffer, pathlib.Path))
+        (sys.version_info[0] >= 3 and isinstance(name_or_buffer, pathlib.Path))
 
 
 class _opener(object):

@@ -7,7 +7,7 @@ from itertools import repeat
 import os
 from contextlib import contextmanager
 import threading
-if sys.version_info[0] == 3:
+if sys.version_info[0] >= 3:
     import queue
 else:
     import Queue as queue
