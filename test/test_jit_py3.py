@@ -69,7 +69,7 @@ class TestScriptPy3(JitTestCase):
 
         self.assertEqual(foo(torch.rand(3, 4)), 18.0)
 
-    @unittest.skipIf(sys.version_info[0] < 3 and sys.version_info[1] < 6, "dict not ordered")
+    @unittest.skipIf(sys.version_info < (3, 6), "dict not ordered")
     def test_dict_preserves_order(self):
         def dict_ordering():
             a : Dict[int, int] = {}
