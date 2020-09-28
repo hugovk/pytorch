@@ -13,7 +13,7 @@
 static PyObject * THPStorage_(size)(THPStorage *self, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
-  return PyLong_FromLong(THWStorage_(size)(LIBRARY_STATE self->cdata));
+  return PyLong_FromLong(self->cdata->nbytes() / sizeof(scalar_t));
   END_HANDLE_TH_ERRORS
 }
 
@@ -65,7 +65,8 @@ static PyObject * THPStorage_(resize_)(THPStorage *self, PyObject *number_arg)
   THPUtils_assert(THPUtils_checkLong(number_arg), "resize_ expects an int, "
       "but got %s", THPUtils_typename(number_arg));
   int64_t newsize = THPUtils_unpackLong(number_arg);
-  THWStorage_(resize)(LIBRARY_STATE self->cdata, newsize);
+  THWStorage_(resizeBytes)(
+      LIBRARY_STATE self->cdata, newsize * sizeof(scalar_t));
   Py_INCREF(self);
   return (PyObject*)self;
   END_HANDLE_TH_ERRORS
@@ -124,17 +125,18 @@ static PyObject * THPStorage_(fromBuffer)(PyObject *_unused, PyObject *args, PyO
     return nullptr;
 
   if (offset < 0 || offset > buffer.len) {
-    PyErr_Format(PyExc_ValueError,
-      "offset must be non-negative and no greater than buffer length (%" PRId64 "), "
-      "but got %" PRId64, (int64_t)offset, (int64_t)buffer.len);
+    PyErr_SetString(PyExc_ValueError, fmt::format(
+      "offset must be non-negative and no greater than buffer length ({}) , but got {}",
+      offset, buffer.len));
     PyBuffer_Release(&buffer);
     return nullptr;
   }
 
   if (count < 0) {
     if ((buffer.len - offset) % sizeof(scalar_t) != 0) {
-      PyErr_Format(PyExc_ValueError, "buffer size (%" PRId64 ") must be a multiple "
-          "of element size (%" PRId64 ")", (int64_t)buffer.len, (int64_t)sizeof(scalar_t));
+      PyErr_SetString(PyExc_ValueError, fmt::format(
+         "buffer size ({}) must be a multiple of element size ({})",
+         buffer.len, sizeof(scalar_t)));
       PyBuffer_Release(&buffer);
       return nullptr;
     }
@@ -142,9 +144,9 @@ static PyObject * THPStorage_(fromBuffer)(PyObject *_unused, PyObject *args, PyO
   }
 
   if (offset + (count * (Py_ssize_t)sizeof(scalar_t)) > buffer.len) {
-    PyErr_Format(PyExc_ValueError, "buffer has only %" PRId64 " elements after offset "
-        "%" PRId64 ", but specified a size of %" PRId64, (int64_t)(buffer.len - offset),
-        (int64_t)offset, (int64_t)count);
+    PyErr_SetString(PyExc_ValueError, fmt::format(
+        "buffer has only {} elements after offset {}, but specified a size of {}",
+        buffer.len - offset, offset, count));
     PyBuffer_Release(&buffer);
     return nullptr;
   }
@@ -182,6 +184,12 @@ static PyObject * THPStorage_(fromBuffer)(PyObject *_unused, PyObject *args, PyO
 #elif defined(TH_REAL_IS_DOUBLE)
   torch::utils::THP_decodeDoubleBuffer(
       THWStorage_(data)(storage), src + offset, byte_order, count);
+#elif defined(TH_REAL_IS_COMPLEXFLOAT)
+  torch::utils::THP_decodeComplexFloatBuffer(
+      THWStorage_(data)(storage), src + offset, byte_order, count);
+#elif defined(TH_REAL_IS_COMPLEXDOUBLE)
+  torch::utils::THP_decodeComplexDoubleBuffer(
+      THWStorage_(data)(storage), src + offset, byte_order, count);
 #else
 #error "Unknown type"
 #endif
@@ -215,16 +223,17 @@ PyObject * THPStorage_(writeFile)(THPStorage *self, PyObject *args)
   HANDLE_TH_ERRORS
   PyObject *file = PyTuple_GET_ITEM(args, 0);
   bool is_real_file = PyTuple_GET_ITEM(args, 1) == Py_True;
+  bool save_size = PyTuple_GET_ITEM(args, 2) == Py_True;
 
   if (!is_real_file) {
-    THPStorage_(writeFileRaw<PyObject*>)(self->cdata, file);
+    THPStorage_(writeFileRaw<PyObject*>)(self->cdata, file, save_size);
     Py_RETURN_NONE;
   }
 
   int fd = PyObject_AsFileDescriptor(file);
   THPUtils_assert(fd != -1, "_write_file couldn't retrieve a file descriptor "
       "from given object");
-  THPStorage_(writeFileRaw)(self->cdata, fd);
+  THPStorage_(writeFileRaw)(self->cdata, fd, save_size);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

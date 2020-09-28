@@ -43,9 +43,9 @@ std::string BackendTransformerBase::getModelId(const NetDef& net) {
   return model_id;
 }
 
-TensorProto BackendTransformerBase::wrapShapeInfoIntoTensorProto(
+TensorProto wrapShapeInfoIntoTensorProto(
     const std::string& name,
-    const ShapeInfo& shape_info) const {
+    const ShapeInfo& shape_info) {
   TensorProto t;
   t.set_name(name);
   t.set_data_type(shape_info.shape.data_type());
@@ -58,9 +58,9 @@ TensorProto BackendTransformerBase::wrapShapeInfoIntoTensorProto(
   return t;
 }
 
-QTensorProto BackendTransformerBase::wrapShapeInfoIntoQTensorProto(
+QTensorProto wrapShapeInfoIntoQTensorProto(
     const std::string& name,
-    const ShapeInfo& shape_info) const {
+    const ShapeInfo& shape_info) {
   QTensorProto t;
   CAFFE_ENFORCE(
       shape_info.is_quantized == true,
@@ -123,7 +123,7 @@ ShapeInfoMap BackendTransformerBase::inferShapes(
     NetDef* pred_net,
     const ShapeInfoMap& shape_hints_mapped,
     const BoundShapeSpec& spec) {
-  ShapeInfoMap shape_map = shape_hints_mapped;
+  ShapeInfoMap shape_map;
 
   // Populate shapes from workplace
   const std::vector<std::string> ws_blobs = ws->Blobs();
@@ -132,6 +132,9 @@ ShapeInfoMap BackendTransformerBase::inferShapes(
     if (shape_info.dimTypeIsSet()) {
       shape_map.emplace(s, shape_info);
     }
+  }
+  for (const auto& s : shape_hints_mapped) {
+    shape_map.insert(s);
   }
   auto eng = BoundShapeInferencerRegistry()->Create("C10", spec);
   eng->InferBoundShapeAndType(*pred_net, shape_map, ws);

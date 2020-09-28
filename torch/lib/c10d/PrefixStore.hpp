@@ -1,12 +1,13 @@
 #pragma once
 
 #include <c10d/Store.hpp>
+#include <memory>
 
 namespace c10d {
 
 class PrefixStore : public Store {
  public:
-  explicit PrefixStore(const std::string& prefix, Store& store);
+  explicit PrefixStore(const std::string& prefix, std::shared_ptr<Store> store);
 
   virtual ~PrefixStore(){};
 
@@ -15,6 +16,8 @@ class PrefixStore : public Store {
   std::vector<uint8_t> get(const std::string& key) override;
 
   int64_t add(const std::string& key, int64_t value) override;
+
+  int64_t getNumKeys() override;
 
   bool check(const std::vector<std::string>& keys) override;
 
@@ -26,7 +29,7 @@ class PrefixStore : public Store {
 
  protected:
   std::string prefix_;
-  Store& store_;
+  std::shared_ptr<Store> store_;
 
   std::string joinKey(const std::string& key);
   std::vector<std::string> joinKeys(const std::vector<std::string>& keys);
